@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Instrument for Outer Reasoning — User Flow</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #f5f5f5;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  padding: 48px 60px 80px;
+}
+
+h1 {
+  text-align: center;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #111;
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  text-align: center;
+  font-size: 13px;
+  color: #777;
+  letter-spacing: 0.08em;
+  margin-bottom: 48px;
+}
+
+/* ── Layout columns ── */
+.flow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  position: relative;
+}
+
+/* ── Node styles ── */
+.node {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 14px 22px;
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 500;
+  color: #111;
+  border-radius: 6px;
+  border: 2px solid #aaa;
+  background: #fff;
+  position: relative;
+  min-width: 260px;
+  max-width: 320px;
+  z-index: 2;
+}
+
+.node.oval {
+  border-radius: 50px;
+}
+
+.node.green {
+  background: #d4edda;
+  border-color: #28a745;
+}
+
+.node.amber {
+  background: #fff3cd;
+  border-color: #d09000;
+}
+
+.node.red {
+  background: #f8d7da;
+  border-color: #c0392b;
+}
+
+.node.blue {
+  background: #e8f0fb;
+  border-color: #2a5ab8;
+}
+
+.node.grey {
+  background: #f0f0f0;
+  border-color: #888;
+}
+
+.node.diamond {
+  background: #fefefe;
+  border-color: #555;
+  transform: rotate(45deg);
+  width: 160px;
+  height: 160px;
+  min-width: unset;
+  max-width: unset;
+  padding: 0;
+}
+
+.node.diamond .inner {
+  transform: rotate(-45deg);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #111;
+  padding: 8px;
+}
+
+/* ── Arrows ── */
+.arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  z-index: 1;
+}
+
+.arrow .line {
+  width: 2px;
+  background: #555;
+}
+
+.arrow .label {
+  font-size: 12px;
+  color: #555;
+  background: #f5f5f5;
+  padding: 1px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+  margin: 2px 0;
+}
+
+.arrow::after {
+  content: '';
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 10px solid #555;
+}
+
+/* ── Branch rows ── */
+.row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 60px;
+  width: 100%;
+  position: relative;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* horizontal connector line */
+.h-line {
+  position: absolute;
+  top: 0;
+  height: 2px;
+  background: #555;
+  z-index: 1;
+}
+
+/* ── Section labels ── */
+.section-label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #999;
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+.spacer { height: 16px; }
+.spacer-sm { height: 8px; }
+</style>
+</head>
+<body>
+
+<h1>Instrument for Outer Reasoning</h1>
+<p class="subtitle">User Flow Diagram — Cognitive State Interface</p>
+
+<div class="flow">
+
+  <!-- START -->
+  <div class="node oval green">Open browser — localhost:5000</div>
+  <div class="arrow"><div class="line" style="height:28px"></div></div>
+
+  <div class="node">Page loads with healthy initial state</div>
+  <div class="arrow"><div class="line" style="height:28px"></div></div>
+
+  <div class="node blue">Interface renders<br><span style="font-size:13px;color:#555">Gauges · Graph · Brain · Input</span></div>
+  <div class="arrow"><div class="line" style="height:28px"></div></div>
+
+  <!-- DECISION -->
+  <div class="node diamond"><div class="inner">User<br>action?</div></div>
+
+  <div class="spacer"></div>
+
+  <!-- BRANCH ROW -->
+  <div style="position:relative; width:860px; display:flex; justify-content:space-between; align-items:flex-start;">
+
+    <!-- Horizontal connector -->
+    <div style="position:absolute; top:0; left:80px; right:80px; height:2px; background:#555;"></div>
+
+    <!-- LEFT: Idle / Decay -->
+    <div class="col" style="width:240px;">
+      <div class="arrow" style="align-items:center;">
+        <div class="label" style="font-size:12px;color:#555;background:#f5f5f5;padding:1px 6px;border-radius:3px;margin-bottom:4px;">Idle 8s+</div>
+        <div class="line" style="height:20px; width:2px; background:#555;"></div>
+        <div style="width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:10px solid #555;"></div>
+      </div>
+      <div class="node red">Passive decay begins<br><span style="font-size:13px;color:#555">ATTN · MEM fall<br>DRIFT · LAT rise</span></div>
+      <div class="arrow"><div class="line" style="height:20px"></div></div>
+      <div class="node amber">Threshold check<br><span style="font-size:13px;color:#555">Every 1s tick</span></div>
+      <div class="arrow"><div class="line" style="height:20px"></div></div>
+      <div class="node red">Health log alert<br><span style="font-size:13px;color:#555">Gauge turns red</span></div>
+    </div>
+
+    <!-- CENTRE: Submit -->
+    <div class="col" style="width:260px;">
+      <div class="arrow" style="align-items:center;">
+        <div class="label" style="font-size:12px;color:#555;background:#f5f5f5;padding:1px 6px;border-radius:3px;margin-bottom:4px;">Submits input</div>
+        <div class="line" style="height:20px; width:2px; background:#555;"></div>
+        <div style="width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:10px solid #555;"></div>
+      </div>
+      <div class="node blue">Submit fires<br><span style="font-size:13px;color:#555">Processing overlay shown</span></div>
+      <div class="arrow"><div class="line" style="height:20px"></div></div>
+      <div class="node">POST /analyse sent<br><span style="font-size:13px;color:#555">Server receives text</span></div>
+      <div class="arrow"><div class="line" style="height:20px"></div></div>
+      <div class="node blue">Reasoning pipeline<br><span style="font-size:13px;color:#555">Tokenise → Score → Classify<br>Evaluate → Recommend</span></div>
+      <div class="arrow"><div class="line" style="height:20px"></div></div>
+      <div class="node">Analysis costs deducted<br><span style="font-size:13px;color:#555">State variables updated</span></div>
+      <div class="arrow"><div class="line" style="height:20px"></div></div>
+      <div class="node green">Recovery deltas applied<br><span style="font-size:13px;color:#555">System partially restored</span></div>
+      <div class="arrow"><div class="line" style="height:20px"></div></div>
+      <div class="node">Response returned<br><span style="font-size:13px;color:#555">to frontend</span></div>
+    </div>
+
+    <!-- RIGHT: Controls -->
+    <div class="col" style="width:220px;">
+      <div class="arrow" style="align-items:center;">
+        <div class="label" style="font-size:12px;color:#555;background:#f5f5f5;padding:1px 6px;border-radius:3px;margin-bottom:4px;">Clicks RESET</div>
+        <div class="line" style="height:20px; width:2px; background:#555;"></div>
+        <div style="width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:10px solid #555;"></div>
+      </div>
+      <div class="node">POST /reset sent<br><span style="font-size:13px;color:#555">All vars restored<br>Health log cleared</span></div>
+      <div class="arrow"><div class="line" style="height:20px"></div></div>
+      <div class="node green">Clean chord plays<br><span style="font-size:13px;color:#555">Interface restores<br>Brain resets</span></div>
+      <div style="height:40px;"></div>
+      <div class="node grey">Toggle AUDIO<br><span style="font-size:13px;color:#555">Mute / unmute<br>phrases</span></div>
+    </div>
+
+  </div>
+
+  <div class="spacer"></div>
+
+  <!-- RESPONSE OUTPUT ROW -->
+  <div style="display:flex; justify-content:center; gap:32px; width:100%; flex-wrap:wrap;">
+    <div class="col" style="align-items:center;">
+      <div class="arrow"><div class="line" style="height:24px"></div></div>
+      <div class="node blue">Output panel renders<br><span style="font-size:13px;color:#555">Type · Scores<br>Recommendations · Deltas</span></div>
+    </div>
+    <div class="col" style="align-items:center;">
+      <div class="arrow"><div class="line" style="height:24px"></div></div>
+      <div class="node blue">Gauges + traces update<br><span style="font-size:13px;color:#555">Reflecting new state</span></div>
+    </div>
+    <div class="col" style="align-items:center;">
+      <div class="arrow"><div class="line" style="height:24px"></div></div>
+      <div class="node blue">3D brain updates<br><span style="font-size:13px;color:#555">Colour · Glow<br>Geometry</span></div>
+    </div>
+    <div class="col" style="align-items:center;">
+      <div class="arrow"><div class="line" style="height:24px"></div></div>
+      <div class="node blue">Audio phrase plays<br><span style="font-size:13px;color:#555">Notes reflect<br>integrity level</span></div>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+  <div style="font-size:13px;color:#777;letter-spacing:0.06em;text-align:center;">↓ &nbsp; State health determines output quality</div>
+  <div class="spacer"></div>
+
+  <!-- HEALTH TIER ROW -->
+  <div style="display:flex; justify-content:center; gap:32px; width:100%;">
+
+    <div class="col" style="align-items:center; width:240px;">
+      <div class="node green" style="width:100%;">Healthy — ≥ 0.75<br><span style="font-size:13px;color:#386;">Full recommendations<br>Clean audio · Stable brain<br>No glitch effects</span></div>
+    </div>
+
+    <div class="col" style="align-items:center; width:240px;">
+      <div class="node amber" style="width:100%;">Degraded — 0.40–0.75<br><span style="font-size:13px;color:#7a5000;">Reduced recommendations<br>Harsh audio · Dimming brain<br>Mild glitch effects</span></div>
+    </div>
+
+    <div class="col" style="align-items:center; width:240px;">
+      <div class="node red" style="width:100%;">Critical — &lt; 0.40<br><span style="font-size:13px;color:#8b0000;">PAUSE output<br>Broken audio · Fragmented brain<br>Heavy glitch effects</span></div>
+    </div>
+
+  </div>
+
+  <div class="spacer"></div>
+  <div style="font-size:13px;color:#777;letter-spacing:0.06em;text-align:center;">↑ &nbsp; Each tier loops back to user action</div>
+
+</div>
+
+</body>
+</html>

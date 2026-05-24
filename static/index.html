@@ -1,0 +1,1773 @@
+# C:\outer_reasoning
+# python server.py
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INSTRUMENT FOR OUTER REASONING</title>
+<style>
+  /* ─── Reset & Base ─────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0a0804;        /* Dark warm brown */
+  --bg2:       #1a1410;        /* Warm dark gray */
+  --bg3:       #2a2018;        /* Weathered brown */
+  --border:    #3d3428;        /* Warm gray border */
+  --border-hi: #554a3d;        /* Lighter warm border */
+  --green:     #7fd900;        /* Warm phosphor green (retro CRT) */
+  --green-dim: #3d6a00;        /* Dim green */
+  --amber:     #ff9500;        /* Warm amber (analog dial) */
+  --amber-dim: #664000;        /* Dim amber */
+  --red:       #ff6b35;        /* Warm red-orange */
+  --red-dim:   #8b3a1f;        /* Dim red */
+  --blue:      #00d4ff;        /* Cyan (analog indicator) */
+  --blue-dim:  #004466;        /* Dim cyan */
+  --dim:       #2a241a;        /* Warm dim */
+  --text:      #d0c4b4;        /* Warm beige text */
+  --text-dim:  #9c8c7e;        /* Dim warm text */
+  --text-hi:   #f8f2ea;        /* Bright warm text */
+  --label:     #b8a890;        /* Warm label color */
+  --font:      'Courier New', Courier, monospace;
+}
+html, body {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* CRT Scan lines effect */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.15),
+    rgba(0, 0, 0, 0.15) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+  z-index: 999;
+}
+
+  /* ─── Layout ─────────────────────────────────────────────────────── */
+  #app {
+    display: grid;
+    grid-template-rows: 36px 180px 1fr 100px 90px;
+    grid-template-columns: 280px 1fr;
+    width: 100vw;
+    height: 100vh;
+    gap: 1px;
+    background: var(--border);
+  }
+
+  /* Header spans full width */
+  #header {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    background: var(--bg2);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 16px;
+    border-bottom: 1px solid var(--border-hi);
+  }
+
+#header .title {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--green);
+  text-transform: uppercase;
+  text-shadow: 0 0 8px var(--green), 0 0 16px var(--green);
+}
+
+  #header .subtitle {
+    font-size: 10px;
+    color: var(--label);
+    letter-spacing: 0.1em;
+  }
+
+  #status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    margin-left: auto;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.3; }
+  }
+
+  #status-text {
+    font-size: 10px;
+    color: var(--label);
+    letter-spacing: 0.08em;
+  }
+
+  /* Left column — metric gauges */
+  #metrics-panel {
+    grid-column: 1;
+    grid-row: 2 / 4;
+    background: linear-gradient(135deg, var(--bg2) 0%, #22190f 100%);
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+    gap: 10px;
+    overflow-y: auto;
+  }
+
+  /* Right top — signal traces + brain */
+  #traces-panel {
+    grid-column: 2;
+    grid-row: 2;
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+  }
+
+  #traces-half {
+    width: 50%;
+    flex-shrink: 0;
+    position: relative;
+    border-right: 1px solid var(--border);
+  }
+
+  #brain-half {
+    width: 50%;
+    flex-shrink: 0;
+    position: relative;
+    background: var(--bg);
+  }
+
+  #brain-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+  }
+
+  #brain-label {
+    position: absolute;
+    top: 8px; left: 12px;
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    color: var(--label);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* Right — system output (spans rows 3 and 4, matching health log row) */
+  #output-panel {
+    grid-column: 2;
+    grid-row: 3 / 5;
+    background: var(--bg2);
+    overflow-y: auto;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border-hi);
+    font-size: 11px;
+    line-height: 1.7;
+  }
+
+  /* Input row — full width */
+  #input-row {
+    grid-column: 1 / -1;
+    grid-row: 5;
+    background: var(--bg3);
+    display: flex;
+    align-items: flex-start;
+    padding: 10px 14px;
+    gap: 10px;
+    border-top: 1px solid var(--border-hi);
+  }
+
+  #input-prompt {
+    color: var(--green);
+    font-size: 13px;
+    user-select: none;
+    letter-spacing: 0.04em;
+    padding-top: 2px;
+    flex-shrink: 0;
+  }
+
+  #input-field {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-hi);
+    font-family: var(--font);
+    font-size: 12px;
+    caret-color: var(--green);
+    resize: none;
+    height: 100%;
+    line-height: 1.6;
+    overflow-y: auto;
+  }
+
+  #input-field::placeholder { color: var(--text-dim); }
+
+  #submit-btn {
+    background: var(--green-dim);
+    border: 1px solid var(--green);
+    color: var(--green);
+    font-family: var(--font);
+    font-size: 10px;
+    padding: 4px 10px;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    transition: background 0.15s;
+  }
+
+  #submit-btn:hover  { background: #00331a; }
+  #submit-btn:active { background: #004422; }
+
+  #reset-btn {
+    background: transparent;
+    border: 1px solid var(--dim);
+    color: var(--label);
+    font-family: var(--font);
+    font-size: 10px;
+    padding: 4px 8px;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    transition: border-color 0.15s;
+  }
+
+  #reset-btn:hover { border-color: var(--amber); color: var(--amber); }
+
+  /* ─── Metric Gauge ────────────────────────────────────────────────── */
+  .gauge {
+  background: linear-gradient(135deg, var(--bg) 0%, #0f0a06 100%);
+  border: 2px solid var(--border);
+  border-radius: 2px;
+  padding: 10px;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.8), 0 0 4px rgba(255, 149, 0, 0.2);
+}
+
+  .gauge-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+  }
+
+  .gauge-label {
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    color: var(--label);
+    text-transform: uppercase;
+  }
+
+  .gauge-value {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--green);
+  letter-spacing: 0.05em;
+  transition: color 0.4s;
+  text-shadow: 0 0 6px var(--green);
+}
+
+  .gauge-name {
+    font-size: 8px;
+    color: var(--text-dim);
+    letter-spacing: 0.12em;
+    margin-bottom: 6px;
+  }
+
+  .gauge-bar-track {
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .gauge-bar-fill {
+    position: absolute;
+    top: 0; left: 0;
+    height: 100%;
+    transition: width 0.6s ease, background 0.4s;
+    background: var(--green);
+  }
+
+  .gauge-canvas {
+    width: 100%;
+    height: 48px;
+    margin-top: 6px;
+    display: block;
+  }
+
+  /* Alert states */
+  .alert-warn .gauge-value  { color: var(--amber); }
+  .alert-warn .gauge-bar-fill { background: var(--amber); }
+  .alert-crit .gauge-value  { color: var(--red); }
+  .alert-crit .gauge-bar-fill { background: var(--red); }
+
+  /* ─── Traces panel label ─────────────────────────────────────────── */
+  #traces-label {
+    position: absolute;
+    top: 8px; left: 12px;
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    color: var(--label);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  #traces-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+  }
+
+  /* ─── Output panel ───────────────────────────────────────────────── */
+  .out-section { margin-bottom: 10px; }
+
+  #health-log-panel {
+  grid-column: 1;
+  grid-row: 4;
+  background: var(--bg2);
+  border-top: 1px solid var(--border-hi);
+  padding: 6px 8px;
+  overflow-y: auto;
+}
+
+#health-log-label {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: var(--label);
+  text-transform: uppercase;
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ... more CSS ... */
+  .out-label {
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    color: var(--label);
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 3px;
+    margin-bottom: 5px;
+  }
+
+  .out-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 2px;
+    color: var(--text);
+  }
+
+  .out-key {
+    color: var(--text-dim);
+    min-width: 100px;
+    flex-shrink: 0;
+  }
+
+  .out-val { color: var(--text-hi); }
+
+  .rec-block {
+    background: var(--bg);
+    border-left: 2px solid var(--green);
+    padding: 6px 10px;
+    margin-bottom: 6px;
+  }
+
+  .rec-block.rank-2 { border-left-color: var(--blue); }
+  .rec-block.rank-3 { border-left-color: var(--amber); }
+  .rec-block.warn   { border-left-color: var(--red); }
+
+  .rec-action {
+    color: var(--text-hi);
+    font-size: 11px;
+    margin-bottom: 3px;
+  }
+
+  .rec-rationale {
+    color: var(--text-dim);
+    font-size: 10px;
+  }
+
+  .rec-conf {
+    font-size: 9px;
+    color: var(--label);
+    margin-top: 3px;
+    letter-spacing: 0.08em;
+  }
+
+  .warning-line {
+    color: var(--red);
+    font-size: 10px;
+    padding: 2px 0;
+    letter-spacing: 0.04em;
+  }
+
+  .idle-msg {
+    color: var(--text-dim);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    padding: 20px 0;
+  }
+
+  .conf-bar {
+    display: inline-block;
+    width: 60px;
+    height: 4px;
+    background: var(--border);
+    vertical-align: middle;
+    position: relative;
+    overflow: hidden;
+    margin-left: 6px;
+  }
+
+  .conf-bar-fill {
+    position: absolute;
+    top: 0; left: 0;
+    height: 100%;
+    background: var(--green);
+  }
+
+  /* Processing overlay */
+  #processing {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(3,8,13,0.7);
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--green);
+    z-index: 10;
+  }
+
+  #processing.active { display: flex; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar       { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border-hi); }
+
+  /* ─── Mute button ─────────────────────────────────────────────────── */
+  #mute-btn {
+    background: transparent;
+    border: 1px solid var(--dim);
+    color: var(--label);
+    font-family: var(--font);
+    font-size: 10px;
+    padding: 4px 8px;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    transition: border-color 0.15s, color 0.15s, opacity 0.15s;
+    flex-shrink: 0;
+  }
+  #mute-btn:hover            { border-color: var(--green); color: var(--green); }
+  #mute-btn.muted            { color: var(--text-dim); border-color: var(--dim); opacity: 0.45; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- Header -->
+  <div id="header">
+    <span class="title">Instrument for Outer Reasoning</span>
+    <span class="subtitle">v1.0.0 · Cognitive Stabilisation Interface</span>
+    <span id="status-text">ONLINE</span>
+    <div id="status-dot"></div>
+  </div>
+
+  <!-- Left: Metric Gauges -->
+  <div id="metrics-panel">
+    <!-- Gauges injected by JS -->
+  </div>
+
+  <!-- Right Top: Signal Traces + Brain Visualisation -->
+  <div id="traces-panel">
+    <div id="traces-half">
+      <span id="traces-label">COGNITIVE STATE — TIME SERIES</span>
+      <canvas id="traces-canvas"></canvas>
+    </div>
+    <div id="brain-half">
+      <span id="brain-label">NEURAL STATE — DEGRADATION MODEL</span>
+      <canvas id="brain-canvas"></canvas>
+    </div>
+    <div id="processing">PROCESSING ▸</div>
+  </div>
+
+  <!-- Left Bottom: System Health Log -->
+  <div id="health-log-panel">
+    <div id="health-log-label">SYSTEM HEALTH LOG</div>
+    <div id="health-log-items">
+      <div class="idle-msg" style="padding: 0; margin: 0; font-size: 9px; color: var(--text-dim);">No events.</div>
+    </div>
+  </div>
+
+  <!-- Right Bottom: Output -->
+  <div id="output-panel">
+    <div class="idle-msg">AWAITING INPUT — Submit a scenario, decision, or problem context below.</div>
+  </div>
+
+  <!-- Input Row -->
+  <div id="input-row">
+    <span id="input-prompt">›</span>
+    <textarea id="input-field"
+              placeholder="Enter scenario, decision context, or problem statement…"
+              autocomplete="off" spellcheck="false"></textarea>
+    <button id="submit-btn">ANALYSE</button>
+    <button id="reset-btn">RESET STATE</button>
+    <button id="mute-btn" title="Toggle audio">◉ AUDIO</button>
+  </div>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   INSTRUMENT FOR OUTER REASONING — Visual Interface
+   Vanilla JS + Canvas API. No frameworks. No build step.
+═══════════════════════════════════════════════════════════════════ */
+
+'use strict';
+
+// ─── State ────────────────────────────────────────────────────────
+const S = {
+  LAT:   0.10,
+  ATTN:  0.90,
+  MEM:   0.90,
+  DRIFT: 0.05,
+  EXT:   0.00,
+  alerts: [],
+  command_count: 0,
+  uptime: 0,
+};
+
+let history = [];  // [{ts, LAT, ATTN, MEM, DRIFT, EXT}, …]
+let healthLog = [];  // NEW
+
+// ─── Audio Engine ─────────────────────────────────────────────────
+// Models the system's ability to "complete a thought" as a sonic phrase.
+// A full phrase = a complete thought. Cognitive integrity [0–1] determines
+// how far through the phrase the system gets before it breaks down.
+const AudioEngine = {
+  ctx:        null,
+  masterGain: null,
+  muted:      false,
+
+  // A pentatonic minor: A3 C4 D4 E4 G4 A4
+  SCALE: [220.00, 261.63, 293.66, 329.63, 392.00, 440.00],
+
+  // 7-note phrase arc: open → rise → peak → fall → resolve to root (tonic).
+  // Full completion = thought resolved. Partial = thought abandoned mid-sentence.
+  PHRASE: [0, 1, 2, 3, 4, 2, 0],
+
+  NOTE_DUR: 0.16,   // base note duration in seconds
+  NOTE_GAP: 0.04,   // base gap between notes in seconds
+
+  _ensureCtx() {
+    if (!this.ctx) {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.value = 0.45;
+      this.masterGain.connect(this.ctx.destination);
+    }
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+  },
+
+  // Weighted cognitive integrity from current state snapshot.
+  // ATTN and MEM contribute positively; DRIFT, LAT, EXT are inverted (high = bad).
+  integrity() {
+    return (
+      (S.ATTN  ?? 0.9) * 0.30 +
+      (S.MEM   ?? 0.9) * 0.25 +
+      (1 - (S.DRIFT ?? 0.05)) * 0.20 +
+      (1 - (S.LAT   ?? 0.10)) * 0.15 +
+      (1 - (S.EXT   ?? 0.00)) * 0.10
+    );
+  },
+
+  // Trigger a phrase on each user interaction.
+  // Healthy (integrity ≈ 1): all 7 notes play, clean tone, resolves to tonic.
+  // Degraded (integrity → 0): phrase truncates, pitch drifts, timing erratic, waveform harsh.
+  triggerPhrase() {
+    if (this.muted) return;
+    this._ensureCtx();
+
+    const ig    = this.integrity();           // 0 – 1
+    const total = this.PHRASE.length;         // 7
+
+    // Number of notes that play before the thought collapses
+    const count = Math.max(1, Math.round(ig * total));
+    const full  = count === total;            // phrase completed = thought resolved
+
+    let t = this.ctx.currentTime + 0.06;
+
+    this.PHRASE.slice(0, count).forEach((scaleIdx, i) => {
+      const isLast       = i === count - 1;
+      const isResolution = full && isLast;    // final tonic note only on full completion
+
+      // Pitch: increases detuning with degradation (in cents)
+      const detune = (Math.random() * 2 - 1) * (1 - ig) * 24;
+
+      // Duration: resolution note held longer; degradation shortens and varies
+      const durJitter = (1 - ig) * 0.05 * (Math.random() * 2 - 1);
+      const dur       = Math.max(0.06,
+        this.NOTE_DUR + durJitter + (isResolution ? this.NOTE_DUR * 1.4 : 0)
+      );
+
+      // Gain: steady at health, wobbles when degraded
+      const gainJitter = (1 - ig) * 0.18 * Math.random();
+      const gain       = Math.max(0.08, 0.45 - gainJitter);
+
+      // Timing: rhythmic at health, erratic when degraded
+      const gapJitter = (1 - ig) * 0.14 * Math.random();
+
+      // Waveform degrades: sine (clean) → triangle → sawtooth (harsh)
+      const wave = ig > 0.65 ? 'sine' : ig > 0.35 ? 'triangle' : 'sawtooth';
+
+      // Mid-phrase note dropout: only non-final notes can drop at low integrity
+      const drop = !isLast && ig < 0.75 && Math.random() > (ig * 0.75 + 0.25);
+
+      if (!drop) {
+        this._note(this.SCALE[scaleIdx], dur, gain, t, wave, detune);
+      }
+
+      t += dur + this.NOTE_GAP + gapJitter;
+    });
+
+    // Full phrase only: soft octave overtone on root — the "thought landing"
+    if (full) {
+      this._note(this.SCALE[0] * 2, 0.55, 0.10, t - 0.18, 'sine', 0);
+    }
+  },
+
+  // Clean resolution chord on system reset — three pure tones, staggered
+  triggerReset() {
+    if (this.muted) return;
+    this._ensureCtx();
+
+    const t = this.ctx.currentTime + 0.05;
+    [this.SCALE[0], this.SCALE[3], this.SCALE[5]].forEach((freq, i) => {
+      this._note(freq, 0.9 + i * 0.08, 0.28, t + i * 0.04, 'sine', 0);
+    });
+  },
+
+  // Schedule a single note with exponential attack/release envelope
+  _note(freq, dur, gain, startTime, wave, detuneCents) {
+    const ctx      = this.ctx;
+    const osc      = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+
+    osc.type            = wave;
+    osc.frequency.value = freq;
+    osc.detune.value    = detuneCents;
+
+    gainNode.gain.setValueAtTime(0.0001, startTime);
+    gainNode.gain.exponentialRampToValueAtTime(gain, startTime + 0.022);
+    gainNode.gain.setValueAtTime(gain, startTime + dur * 0.65);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + dur);
+
+    osc.connect(gainNode);
+    gainNode.connect(this.masterGain);
+
+    osc.start(startTime);
+    osc.stop(startTime + dur + 0.05);
+  },
+
+  toggleMute() {
+    this.muted = !this.muted;
+    const btn = document.getElementById('mute-btn');
+    if (btn) {
+      btn.textContent = this.muted ? '○ AUDIO' : '◉ AUDIO';
+      btn.classList.toggle('muted', this.muted);
+    }
+  }
+};
+let lastStateUpdate = Date.now();
+let targetState = {};
+let previousState = {};
+
+// ─── Colour palette ───────────────────────────────────────────────
+const C = {
+  green:     '#00e5a0',
+  greenDim:  '#006644',
+  amber:     '#ffaa00',
+  amberDim:  '#7a4f00',
+  red:       '#ff4455',
+  blue:      '#00aaff',
+  blueDim:   '#00304d',
+  bg:        '#03080d',
+  bg2:       '#070f18',
+  border:    '#0d2235',
+  borderHi:  '#0e3050',
+  dim:       '#1a3344',
+  text:      '#a0c8cc',
+  textDim:   '#2a5060',
+};
+
+// Colour per variable — used in trace canvas
+const VAR_COLORS = {
+  LAT:   '#ffaa00',
+  ATTN:  '#00e5a0',
+  MEM:   '#00aaff',
+  DRIFT: '#ff4455',
+  EXT:   '#cc44ff',
+};
+
+// ─── Gauge definitions ────────────────────────────────────────────
+const GAUGES = [
+  {
+    id: 'LAT',
+    name: 'Decision Latency',
+    desc: 'Phase offset · lag indicator',
+    // For LAT: low is good — invert bar fill
+    invert: true,
+    // Canvas renderer
+    render: renderLAT,
+  },
+  {
+    id: 'ATTN',
+    name: 'Attention Stability',
+    desc: 'Signal coherence · dropout monitor',
+    invert: false,
+    render: renderATTN,
+  },
+  {
+    id: 'MEM',
+    name: 'Memory Integrity',
+    desc: 'Fragmentation index · association map',
+    invert: false,
+    render: renderMEM,
+  },
+  {
+    id: 'DRIFT',
+    name: 'Error Drift',
+    desc: 'Divergence · instability oscillation',
+    invert: true,
+    render: renderDRIFT,
+  },
+  {
+    id: 'EXT',
+    name: 'External Reliance',
+    desc: 'Substitution indicator · autonomy index',
+    invert: true,
+    render: renderEXT,
+  },
+];
+
+// ─── Build gauge DOM ──────────────────────────────────────────────
+const metricsPanel = document.getElementById('metrics-panel');
+const gaugeCanvases = {};
+
+GAUGES.forEach(g => {
+  const div = document.createElement('div');
+  div.className = 'gauge';
+  div.id = `gauge-${g.id}`;
+  div.innerHTML = `
+    <div class="gauge-header">
+      <span class="gauge-label">${g.id}</span>
+      <span class="gauge-value" id="gv-${g.id}">0.000</span>
+    </div>
+    <div class="gauge-name">${g.name}</div>
+    <div class="gauge-bar-track">
+      <div class="gauge-bar-fill" id="gb-${g.id}" style="width:0%"></div>
+    </div>
+    <canvas class="gauge-canvas" id="gc-${g.id}" height="48"></canvas>
+    <div style="font-size:8px;color:var(--text-dim);margin-top:3px;letter-spacing:0.08em">${g.desc}</div>
+  `;
+  metricsPanel.appendChild(div);
+  gaugeCanvases[g.id] = div.querySelector(`#gc-${g.id}`);
+});
+
+// ─── Gauge canvas renderers ───────────────────────────────────────
+// Each renderer draws into a small 2D canvas expressing the variable's
+// characteristic degradation signature.
+
+// Per-gauge animation times — each advances at a rate driven by its variable's value
+const animTimes = { LAT: 0, ATTN: 0, MEM: 0, DRIFT: 0, EXT: 0 };
+
+function renderLAT(canvas, value, t) {
+  // LAT: Two sine waves. Phase offset grows with LAT.
+  // Animation runs fast when LAT is low (responsive), slow when high (sluggish).
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const phase = value * Math.PI * 1.5;
+  const freq  = 0.08;
+
+  // Reference wave
+  ctx.beginPath();
+  ctx.strokeStyle = C.dim;
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x++) {
+    const y = H/2 + Math.sin((x * freq) + t) * (H * 0.32);
+    x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Lagging wave (LAT-affected)
+  const col = value > 0.6 ? C.red : value > 0.35 ? C.amber : C.amber;
+  ctx.beginPath();
+  ctx.strokeStyle = col;
+  ctx.lineWidth = 1.5;
+  for (let x = 0; x < W; x++) {
+    const y = H/2 + Math.sin((x * freq) + t - phase) * (H * 0.32);
+    x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+}
+
+function renderATTN(canvas, value, t) {
+  // ATTN: Sine wave with noise/dropout as ATTN falls.
+  // Animation runs slow when stable (high ATTN), fast and erratic when degraded (low ATTN).
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const dropoutProb  = Math.pow(1.0 - value, 2.2) * 0.6;
+  const noiseAmp     = (1.0 - value) * H * 0.25;
+  const col = value < 0.3 ? C.red : value < 0.55 ? C.amber : C.green;
+
+  ctx.beginPath();
+  ctx.strokeStyle = col;
+  ctx.lineWidth = 1.5;
+  let drawing = true;
+
+  for (let x = 0; x < W; x++) {
+    if (Math.random() < dropoutProb * 0.04) drawing = !drawing;
+
+    const clean = Math.sin((x * 0.09) + t) * (H * 0.3);
+    const noise = (Math.random() - 0.5) * noiseAmp;
+    const y = H/2 + clean + noise;
+
+    if (drawing) {
+      x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    } else {
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+    }
+  }
+  ctx.stroke();
+}
+
+function renderMEM(canvas, value, t) {
+  // MEM: Grid of dots. As MEM falls, dots disappear (fragmentation).
+  // t drives a deterministic pulse — faster flicker rate at low MEM.
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const cols = 18, rows = 3;
+  const cx = W / cols, cy = H / rows;
+  const col = value < 0.3 ? C.red : value < 0.55 ? C.amber : C.blue;
+
+  for (let row = 0; row < rows; row++) {
+    for (let col2 = 0; col2 < cols; col2++) {
+      const threshold = (col2 * rows + row) / (cols * rows);
+      const visible   = value > threshold;
+      // Flicker: sin-based so speed is controlled by t (which advances faster at low MEM)
+      const flickerWave = Math.sin(t * 3 + col2 * 1.4 + row * 2.3);
+      const flicker     = visible && flickerWave > (1 - (1 - value) * 1.6);
+
+      if (visible && !flicker) {
+        // Dot size pulses slightly with t at low health
+        const pulse = 1 + Math.sin(t * 2 + col2 * 0.5) * (1 - value) * 0.35;
+        ctx.beginPath();
+        ctx.arc(cx * col2 + cx / 2, cy * row + cy / 2, 1.8 * pulse, 0, Math.PI * 2);
+        ctx.fillStyle = col;
+        ctx.fill();
+      } else if (visible && flicker) {
+        ctx.beginPath();
+        ctx.arc(cx * col2 + cx / 2, cy * row + cy / 2, 1.0, 0, Math.PI * 2);
+        ctx.fillStyle = C.dim;
+        ctx.fill();
+      }
+    }
+  }
+}
+
+function renderDRIFT(canvas, value, t) {
+  // DRIFT: Two waveforms diverging from centre as DRIFT rises.
+  // Animation nearly still at low DRIFT, fast and chaotic at high DRIFT.
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const diverge = value * H * 0.38;
+  const col = value > 0.6 ? C.red : value > 0.35 ? C.amber : C.green;
+
+  // Upper diverging trace
+  ctx.beginPath();
+  ctx.strokeStyle = col;
+  ctx.lineWidth = 1.2;
+  for (let x = 0; x < W; x++) {
+    const prog = x / W;
+    const base = Math.sin((x * 0.07) + t) * (H * 0.15);
+    const y    = H/2 - diverge * prog + base;
+    x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Lower diverging trace
+  ctx.beginPath();
+  ctx.strokeStyle = col;
+  ctx.globalAlpha = 0.5;
+  for (let x = 0; x < W; x++) {
+    const prog = x / W;
+    const base = Math.sin((x * 0.07) + t + Math.PI) * (H * 0.15);
+    const y    = H/2 + diverge * prog + base;
+    x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.globalAlpha = 1.0;
+
+  // Centreline (reference)
+  ctx.beginPath();
+  ctx.strokeStyle = C.dim;
+  ctx.lineWidth = 0.5;
+  ctx.moveTo(0, H/2); ctx.lineTo(W, H/2);
+  ctx.stroke();
+}
+
+function renderEXT(canvas, value, t) {
+  // EXT: Solid fill encroaching from right. Represents automation displacement.
+  // t drives a shimmer on the boundary — faster and more agitated as EXT rises.
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const fillW   = value * W;
+  const col     = value > 0.65 ? C.red : value > 0.4 ? C.amber : C.green;
+  // Boundary shimmer: oscillates faster and wider as EXT increases
+  const shimmer = Math.sin(t * 4) * value * 4;
+
+  // Self (left, autonomous)
+  const selfGrad = ctx.createLinearGradient(0, 0, W, 0);
+  selfGrad.addColorStop(0, C.green + '44');
+  selfGrad.addColorStop(1, C.green + '00');
+  ctx.fillStyle = selfGrad;
+  ctx.fillRect(0, 0, W - fillW, H);
+
+  // External (right, encroaching)
+  if (fillW > 0) {
+    const extGrad = ctx.createLinearGradient(W - fillW, 0, W, 0);
+    extGrad.addColorStop(0, col + '33');
+    extGrad.addColorStop(1, col + 'aa');
+    ctx.fillStyle = extGrad;
+    ctx.fillRect(W - fillW, 0, fillW, H);
+  }
+
+  // Dividing line — shimmers using t
+  if (fillW > 1) {
+    ctx.beginPath();
+    ctx.strokeStyle = col;
+    ctx.lineWidth   = 1;
+    ctx.moveTo(W - fillW + shimmer, 0);
+    ctx.lineTo(W - fillW + shimmer, H);
+    ctx.stroke();
+  }
+
+  // Tick marks
+  ctx.strokeStyle = C.dim;
+  ctx.lineWidth = 0.5;
+  for (let i = 1; i < 10; i++) {
+    const tx = (i / 10) * W;
+    ctx.beginPath();
+    ctx.moveTo(tx, H - 6);
+    ctx.lineTo(tx, H);
+    ctx.stroke();
+  }
+}
+
+// ─── Main traces canvas ────────────────────────────────────────────
+const tracesCanvas = document.getElementById('traces-canvas');
+const tracesCtx    = tracesCanvas.getContext('2d');
+
+function resizeTraces() {
+  const p = tracesCanvas.parentElement;
+  tracesCanvas.width  = p.clientWidth;
+  tracesCanvas.height = p.clientHeight;
+  BrainEngine.resize();
+}
+
+function renderTraces() {
+  const W = tracesCanvas.width;
+  const H = tracesCanvas.height;
+  const ctx = tracesCtx;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = C.border;
+  ctx.lineWidth = 0.5;
+  const gridCols = 12, gridRows = 6;
+  for (let i = 0; i <= gridCols; i++) {
+    const x = (i / gridCols) * W;
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let i = 0; i <= gridRows; i++) {
+    const y = (i / gridRows) * H;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  if (history.length < 2) return;
+
+  const vars = ['ATTN', 'MEM', 'LAT', 'DRIFT', 'EXT'];
+  const now  = Date.now() / 1000;
+  const windowSec = 120;  // Show last 120 seconds
+
+  vars.forEach(varId => {
+    const color = VAR_COLORS[varId];
+
+    // [NEW: Add phosphor glow effect]
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+
+    // Draw trace
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth   = 1.5;  // Slightly thicker for glow effect
+    ctx.setLineDash([]);
+
+    let first = true;
+    history.forEach(pt => {
+      const age = now - pt.ts;
+      if (age > windowSec) return;
+
+      const x = W - (age / windowSec) * W;
+      // Map value 0..1 to vertical position with margins
+      const margin = 0.08;
+      const y = H * (1 - margin) - pt[varId] * H * (1 - margin * 2);
+
+      if (first) { ctx.moveTo(x, y); first = false; }
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // Legend label at right edge
+        const latest = history[history.length - 1];
+    if (latest) {
+      const y = H * (1 - 0.08) - latest[varId] * H * (1 - 0.16);
+      
+      // [NEW: Add glow to legend text]
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 8;
+      
+      ctx.fillStyle = color;
+      ctx.font = '9px Courier New';
+      ctx.fillText(varId, W - 32, Math.max(12, Math.min(H - 6, y - 4)));
+      
+      // Clear shadow for next iteration
+      ctx.shadowBlur = 0;
+    }
+  });
+
+  // Time axis label
+  ctx.fillStyle = C.textDim;
+  ctx.font = '8px Courier New';
+  ctx.fillText('← 120s', 8, H - 6);
+  ctx.fillText('NOW', W - 28, H - 6);
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+}
+
+// ─── Update UI from state ─────────────────────────────────────────
+function updateGauges(snap) {
+  GAUGES.forEach(g => {
+    const val   = snap[g.id] ?? 0;
+    const valEl = document.getElementById(`gv-${g.id}`);
+    const barEl = document.getElementById(`gb-${g.id}`);
+    const gaugeEl = document.getElementById(`gauge-${g.id}`);
+
+    valEl.textContent = val.toFixed(3);
+
+    // Bar fill: for inverted metrics (LAT, DRIFT, EXT), fill = value
+    // For non-inverted (ATTN, MEM), fill = value
+    barEl.style.width = (val * 100).toFixed(1) + '%';
+
+    // Alert state
+    gaugeEl.classList.remove('alert-warn', 'alert-crit');
+    if (g.invert) {
+      // High value is bad
+      if (val >= 0.65) gaugeEl.classList.add('alert-crit');
+      else if (val >= 0.40) gaugeEl.classList.add('alert-warn');
+    } else {
+      // Low value is bad
+      if (val <= 0.30) gaugeEl.classList.add('alert-crit');
+      else if (val <= 0.50) gaugeEl.classList.add('alert-warn');
+    }
+
+    // Render small canvas
+    const canvas = gaugeCanvases[g.id];
+    if (canvas) {
+      canvas.width = canvas.clientWidth || 240;
+      g.render(canvas, val);
+    }
+  });
+}
+
+// ─── Render structured output ─────────────────────────────────────
+function renderOutput(data) {
+  const panel   = document.getElementById('output-panel');
+  const result  = data.result;
+  const pre     = data.state_pre;
+  const post    = data.state_post;
+
+  let html = '';
+
+  // Parse section
+  html += `<div class="out-section">
+    <div class="out-label">SCENARIO ANALYSIS</div>
+    <div class="out-row"><span class="out-key">TYPE</span><span class="out-val">${result.scenario_type}</span></div>
+    <div class="out-row"><span class="out-key">COMPLEXITY</span><span class="out-val">${result.complexity.toFixed(3)}<span class="conf-bar"><span class="conf-bar-fill" style="width:${(result.complexity*100).toFixed(0)}%;background:${result.complexity > 0.6 ? C.red : C.amber}"></span></span></span></div>
+    <div class="out-row"><span class="out-key">TOKEN COUNT</span><span class="out-val">${result.token_count}</span></div>
+    <div class="out-row"><span class="out-key">STATE HEALTH</span><span class="out-val">${result.state_health.toFixed(3)}<span class="conf-bar"><span class="conf-bar-fill" style="width:${(result.state_health*100).toFixed(0)}%;background:${result.state_health < 0.4 ? C.red : result.state_health < 0.65 ? C.amber : C.green}"></span></span></span></div>
+  </div>`;
+
+  // Complexity scores
+  html += `<div class="out-section">
+    <div class="out-label">COMPLEXITY SCORES</div>`;
+  Object.entries(result.scores).forEach(([k, v]) => {
+    html += `<div class="out-row"><span class="out-key">${k.replace(/_/g, ' ').toUpperCase()}</span><span class="out-val">${v.toFixed(3)}<span class="conf-bar"><span class="conf-bar-fill" style="width:${(v*100).toFixed(0)}%"></span></span></span></div>`;
+  });
+  html += `</div>`;
+
+  // Reasoning trace
+  html += `<div class="out-section">
+    <div class="out-label">REASONING TRACE</div>`;
+  result.steps.forEach((step, i) => {
+    html += `<div class="out-row"><span class="out-key">[${i+1}] ${step}</span><span class="out-val" style="color:var(--text-dim)">applied</span></div>`;
+  });
+  html += `</div>`;
+
+  // Recommendations
+  html += `<div class="out-section"><div class="out-label">RECOMMENDATIONS</div>`;
+  result.recommendations.forEach(rec => {
+    const rankClass = `rank-${rec.rank}`;
+    html += `<div class="rec-block ${rankClass}">
+      <div class="rec-action">[${rec.rank}] ${rec.action}</div>
+      <div class="rec-rationale">${rec.rationale}</div>
+      <div class="rec-conf">CONFIDENCE ${rec.confidence.toFixed(3)}<span class="conf-bar" style="margin-left:6px"><span class="conf-bar-fill" style="width:${(rec.confidence*100).toFixed(0)}%;background:${rec.confidence < 0.4 ? C.red : rec.confidence < 0.6 ? C.amber : C.green}"></span></span></div>
+    </div>`;
+  });
+  html += `</div>`;
+
+
+
+  // State delta
+  html += `<div class="out-section"><div class="out-label">STATE DELTA</div>`;
+  Object.entries(result.state_deltas).forEach(([k, v]) => {
+    const sign  = v >= 0 ? '+' : '';
+    const color = v === 0 ? 'var(--text-dim)' : v > 0 ? C.amber : C.green;
+    html += `<div class="out-row"><span class="out-key">${k}</span><span class="out-val" style="color:${color}">${sign}${v.toFixed(4)}</span></div>`;
+  });
+  html += `</div>`;
+
+  panel.innerHTML = html;
+}
+
+// ─── State polling ────────────────────────────────────────────────
+async function pollState() {
+  try {
+    const r    = await fetch('/state');
+    const data = await r.json();
+
+    Object.assign(S, data.state);
+    history = data.history;
+
+    updateGauges(S);
+    renderTraces();
+  } catch (_) { /* server may be starting */ }
+}
+
+// ─── Submit handler ───────────────────────────────────────────────
+async function submitInput() {
+  const field   = document.getElementById('input-field');
+  const proc    = document.getElementById('processing');
+  const text    = field.value.trim();
+
+  if (!text) return;
+
+  field.value = '';
+  field.disabled = true;
+  proc.classList.add('active');
+
+  try {
+    const r    = await fetch('/analyse', {
+      method:  'POST',
+      headers: {'Content-Type': 'application/json'},
+      body:    JSON.stringify({text}),
+    });
+    const data = await r.json();
+
+    if (data.error) {
+      document.getElementById('output-panel').innerHTML =
+        `<div class="warning-line">ERROR: ${data.error}</div>`;
+    } else {
+      Object.assign(S, data.state_post);
+      renderOutput(data);
+      updateGauges(S);
+      GlitchEngine.onInteraction();  // brief clarity pulse, glitches suppressed during recovery
+      AudioEngine.triggerPhrase();   // phrase quality reflects post-interaction state
+    }
+  } catch (e) {
+    document.getElementById('output-panel').innerHTML =
+      `<div class="warning-line">CONNECTION ERROR: ${e.message}</div>`;
+  } finally {
+    field.disabled = false;
+    field.focus();
+    proc.classList.remove('active');
+  }
+}
+
+// ─── Reset handler ────────────────────────────────────────────────
+async function resetState() {
+  await fetch('/reset', {method: 'POST'});
+  document.getElementById('output-panel').innerHTML =
+    '<div class="idle-msg">STATE RESET — Cognitive variables restored to initial values.</div>';
+  AudioEngine.triggerReset();   // clean chord on restoration
+}
+
+// ─── Brain Engine ─────────────────────────────────────────────────
+// 3D wireframe brain rendered with perspective projection.
+// State variables degrade the brain visually:
+//   ATTN ↓  → neural dropout — lines fragment and break apart
+//   MEM  ↓  → cortex dims section by section (posterior → anterior)
+//   DRIFT ↑ → geometry warps — the shape itself corrupts
+//   LAT   ↑ → rotation and pulse slow to a crawl
+//   EXT   ↑ → colour bleeds from green-cyan toward purple-violet
+const BrainEngine = {
+  canvas: null,
+  ctx:    null,
+  W:      0,
+  H:      0,
+  rotY:   0,       // continuously incremented Y-axis rotation
+  _lines: null,    // pre-computed mesh: [{pts, isPhi, norm}]
+  _RX:    -0.38,   // fixed X tilt — exposes the top of the brain
+
+  init(canvas) {
+    this.canvas = canvas;
+    this.ctx    = canvas.getContext('2d');
+    this.resize();
+    this._buildMesh();
+  },
+
+  resize() {
+    if (!this.canvas) return;
+    const p = this.canvas.parentElement;
+    if (p) {
+      this.canvas.width  = p.clientWidth;
+      this.canvas.height = p.clientHeight;
+    }
+    this.W = this.canvas.width;
+    this.H = this.canvas.height;
+  },
+
+  // Generate latitude rings and longitude arcs over the brain surface
+  _buildMesh() {
+    const LAT = 18, LON = 24, PTS = 72;
+    this._lines = [];
+
+    for (let i = 1; i < LAT; i++) {
+      const phi = (i / LAT) * Math.PI;
+      const pts = [];
+      for (let j = 0; j <= PTS; j++) pts.push(this._bp((j / PTS) * Math.PI * 2, phi));
+      this._lines.push({ pts, isPhi: true, norm: i / LAT });
+    }
+    for (let i = 0; i < LON; i++) {
+      const theta = (i / LON) * Math.PI * 2;
+      const pts = [];
+      for (let j = 0; j <= PTS; j++) pts.push(this._bp(theta, (j / PTS) * Math.PI));
+      this._lines.push({ pts, isPhi: false, norm: i / LON });
+    }
+  },
+
+  // Parametric brain surface point.
+  // phi=0 = top (north pole), phi=PI = bottom.
+  // Multiple frequency perturbations create gyri/sulci texture.
+  // Interhemispheric fissure runs along the sagittal plane (cos(theta)≈0).
+  _bp(theta, phi) {
+    let r = 1.0;
+
+    r += 0.110 * Math.sin(4  * phi) * Math.cos(3 * theta);
+    r += 0.090 * Math.sin(6  * phi) * Math.sin(5 * theta);
+    r += 0.070 * Math.cos(4  * phi) * Math.cos(6 * theta);
+    r += 0.050 * Math.sin(8  * phi) * Math.sin(4 * theta);
+    r += 0.040 * Math.cos(6  * phi) * Math.cos(7 * theta);
+    r += 0.030 * Math.sin(10 * phi) * Math.cos(5 * theta);
+    r += 0.025 * Math.sin(5  * phi) * Math.sin(8 * theta);
+
+    // Interhemispheric fissure — groove deepest at top, along cos(theta)=0
+    r -= 0.19 * Math.exp(-10 * Math.cos(theta) ** 2)
+              * Math.max(0, Math.cos(phi)) ** 1.4;
+
+    // Flatten the base (brain rests on skull)
+    if (phi > Math.PI * 0.76) r *= 0.90;
+
+    return {
+      x: r * 1.12 * Math.sin(phi) * Math.cos(theta),
+      y: r * 0.88 * Math.sin(phi) * Math.sin(theta),
+      z: r * 0.78 * Math.cos(phi),
+    };
+  },
+
+  // 3D → 2D perspective projection, rotating around Y then X
+  _proj(x, y, z) {
+    const ry = this.rotY, rx = this._RX;
+
+    // Y rotation
+    const x1 =  x * Math.cos(ry) + z * Math.sin(ry);
+    const z1 = -x * Math.sin(ry) + z * Math.cos(ry);
+
+    // X rotation (tilt to show top)
+    const y2 =  y * Math.cos(rx) - z1 * Math.sin(rx);
+    const z2 =  y * Math.sin(rx) + z1 * Math.cos(rx);
+
+    // Perspective divide
+    const s  = 4.8 / (4.8 + z2 + 0.001);
+    const vs = Math.min(this.W, this.H) * 0.40;
+
+    return { px: this.W / 2 + x1 * vs * s, py: this.H / 2 + y2 * vs * s, depth: z2, s };
+  },
+
+  // Advance rotation — slows as LAT (latency) rises
+  update() {
+    this.rotY += 0.003 + (1 - (S.LAT ?? 0.1)) * 0.007;
+  },
+
+  render() {
+    if (!this.canvas || !this._lines) return;
+    const ctx = this.ctx;
+    ctx.clearRect(0, 0, this.W, this.H);
+
+    const attn  = S.ATTN  ?? 0.9;
+    const mem   = S.MEM   ?? 0.9;
+    const drift = S.DRIFT ?? 0.05;
+    const lat   = S.LAT   ?? 0.1;
+    const ext   = S.EXT   ?? 0.0;
+    const health = attn * 0.30 + mem * 0.25 + (1 - drift) * 0.20
+                 + (1 - lat) * 0.15 + (1 - ext) * 0.10;
+
+    // DRIFT: geometric warp amount
+    const warp = drift * 0.13;
+
+    // Pulse: rate slows with ATTN degradation
+    const pulse = (Math.sin(performance.now() * (0.0015 + attn * 0.0025)) + 1) * 0.5;
+
+    // Colour: #00e5a0 (green-cyan) → #cc44ff (purple-violet) as EXT rises
+    const rc = Math.round(  0 + 204 * ext);
+    const gc = Math.round(229 - 161 * ext);
+    const bc = Math.round(160 +  95 * ext);
+
+    // Project all lines, applying drift warp to each point
+    const toRender = this._lines.map((line, li) => {
+      const pts = line.pts.map((p, pi) => {
+        let { x, y, z } = p;
+        if (warp > 0.005) {
+          const ph = li * 0.83 + pi * 0.11 + this.rotY;
+          x += warp * Math.sin(ph * 1.7);
+          y += warp * Math.cos(ph * 1.3);
+          z += warp * Math.sin(ph * 2.1);
+        }
+        return this._proj(x, y, z);
+      });
+      const avgDepth = pts.reduce((s, p) => s + p.depth, 0) / pts.length;
+      return { pts, line, li, avgDepth };
+    });
+
+    // Painter's algorithm: back to front so closer lines overdraw distant ones
+    toRender.sort((a, b) => a.avgDepth - b.avgDepth);
+
+    toRender.forEach(({ pts, line, li, avgDepth }) => {
+      // ATTN: whole-line dropout — entire line randomly vanishes
+      if (attn < 0.85 && Math.random() < (1 - attn) * 0.30) return;
+
+      // MEM: posterior and lower regions dim first as memory fragments
+      let memFactor;
+      if (line.isPhi) {
+        // Latitude rings — lower rings (norm > 0.5) dim before upper rings
+        memFactor = line.norm > 0.5
+          ? Math.max(0.04, mem)
+          : Math.max(0.15, mem * 0.9 + 0.1);
+      } else {
+        // Longitude arcs — posterior arcs (cos(norm*2PI) < 0) dim first
+        const isPost = Math.cos(line.norm * Math.PI * 2) < 0;
+        memFactor    = isPost
+          ? Math.max(0.04, mem * 0.7)
+          : Math.max(0.12, mem * 0.9 + 0.1);
+      }
+
+      const depthAlpha = Math.max(0, (avgDepth + 1.5) / 3.0);
+      const alpha      = Math.min(0.92, Math.max(0.02,
+        depthAlpha * memFactor * (0.30 + health * 0.60)
+        + pulse * health * 0.15
+      ));
+      const lw = Math.max(0.3, (0.4 + depthAlpha * 0.8) * (0.35 + health * 0.65));
+
+      // Glow only on front-facing lines when system has some health
+      if (avgDepth > 0.1 && health > 0.4) {
+        ctx.shadowColor = `rgba(${rc},${gc},${bc},${(health * 0.25).toFixed(2)})`;
+        ctx.shadowBlur  = 5 * health;
+      } else {
+        ctx.shadowBlur  = 0;
+      }
+
+      ctx.strokeStyle = `rgba(${rc},${gc},${bc},${alpha.toFixed(2)})`;
+      ctx.lineWidth   = lw;
+      ctx.beginPath();
+
+      pts.forEach((pt, i) => {
+        // ATTN: per-segment dropout — breaks lines into fragments
+        const drop = attn < 0.75 && Math.random() < (1 - attn) * 0.10;
+        if (i === 0 || drop) ctx.moveTo(pt.px, pt.py);
+        else                  ctx.lineTo(pt.px, pt.py);
+      });
+      ctx.stroke();
+    });
+
+    ctx.shadowBlur = 0;
+  },
+};
+
+// ─── Glitch Engine ────────────────────────────────────────────────
+// As cognitive health falls, the interface shudders, tears, and corrupts.
+// A fullscreen overlay canvas handles raster effects (scan tears, block
+// corruption, static noise, vignette). CSS mutations handle shake, chromatic
+// aberration, and brightness flicker. Text corruption degrades UI labels.
+// All effects scale probabilistically with degradation (1 − health).
+const GlitchEngine = {
+  overlay:     null,
+  ctx:         null,
+  W:           0,
+  H:           0,
+  _filterLock:    false,   // prevents simultaneous CSS filter conflicts
+  _shakeLock:     false,   // prevents simultaneous transform conflicts
+  _suppressUntil: 0,       // timestamp until which glitches are suppressed (recovery window)
+
+  init() {
+    const c = document.createElement('canvas');
+    Object.assign(c.style, {
+      position:      'fixed',
+      top:           '0',
+      left:          '0',
+      width:         '100%',
+      height:        '100%',
+      pointerEvents: 'none',
+      zIndex:        '1000',
+    });
+    document.body.appendChild(c);
+    this.overlay = c;
+    this.ctx     = c.getContext('2d');
+    this._resize();
+    window.addEventListener('resize', () => this._resize());
+  },
+
+  _resize() {
+    this.W = this.overlay.width  = window.innerWidth;
+    this.H = this.overlay.height = window.innerHeight;
+  },
+
+  // Weighted health — same formula as AudioEngine
+  _health() {
+    return (
+      (S.ATTN  ?? 0.9) * 0.30 +
+      (S.MEM   ?? 0.9) * 0.25 +
+      (1 - (S.DRIFT ?? 0.05)) * 0.20 +
+      (1 - (S.LAT   ?? 0.10)) * 0.15 +
+      (1 - (S.EXT   ?? 0.00)) * 0.10
+    );
+  },
+
+  // Called every animation frame from animate()
+  update() {
+    const health = this._health();
+    const d      = Math.max(0, 1 - health);
+    const now    = performance.now();
+
+    this.ctx.clearRect(0, 0, this.W, this.H);
+
+    // Recovery window: glitches suppressed, brief clarity pulse shown instead
+    if (now < this._suppressUntil) {
+      const t     = 1 - (this._suppressUntil - now) / 800;  // 0 → 1 over 800ms
+      const alpha = (Math.sin(t * Math.PI) * 0.11).toFixed(3); // bell-curve pulse
+      this.ctx.fillStyle = `rgba(0,229,160,${alpha})`;
+      this.ctx.fillRect(0, 0, this.W, this.H);
+      return;
+    }
+
+    if (health >= 0.88) return;              // system stable — no effect
+
+    this._vignette(d);        // always-on: edges darken as health falls
+    this._scanTears(d);       // horizontal sync failure bands
+    this._blockCorruption(d); // memory block artifacts
+    this._staticNoise(d);     // pixel noise / static
+    this._shake(d);           // physical displacement of app container
+    this._chromatic(d);       // RGB channel separation
+    this._flicker(d);         // power fluctuation — brightness dip
+    this._textCorrupt(d);     // UI label character corruption
+  },
+
+  // Called on each user submission — opens recovery window and clears CSS state
+  onInteraction() {
+    this._suppressUntil = performance.now() + 800;
+
+    // Release any active CSS mutations immediately so recovery feels clean
+    const app = document.getElementById('app');
+    app.style.transform = '';
+    app.style.filter    = '';
+    this._filterLock = false;
+    this._shakeLock  = false;
+  },
+
+  // Persistent radial vignette — continuous signal that the system is failing
+  _vignette(d) {
+    const g = this.ctx.createRadialGradient(
+      this.W / 2, this.H / 2, this.H * 0.25,
+      this.W / 2, this.H / 2, this.H * 0.88
+    );
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, `rgba(0,0,0,${(d * 0.58).toFixed(2)})`);
+    this.ctx.fillStyle = g;
+    this.ctx.fillRect(0, 0, this.W, this.H);
+  },
+
+  // Coloured horizontal strips — display sync failure
+  _scanTears(d) {
+    if (d < 0.10 || Math.random() > d * 0.18) return;
+
+    const count = Math.ceil(d * 3);
+    for (let i = 0; i < count; i++) {
+      const y     = Math.random() * this.H;
+      const h     = 1 + Math.random() * d * 10;
+      const alpha = (d * 0.35 * Math.random()).toFixed(2);
+      const col   = Math.random() > 0.5 ? '0,229,160' : '255,68,85';
+      this.ctx.fillStyle = `rgba(${col},${alpha})`;
+      this.ctx.fillRect(0, y, this.W, h);
+
+      // Secondary offset strip — pixel row displacement
+      if (d > 0.35 && Math.random() > 0.55) {
+        const offset = (Math.random() * 2 - 1) * d * 28;
+        this.ctx.fillStyle = `rgba(255,255,255,${(alpha * 0.25).toFixed(2)})`;
+        this.ctx.fillRect(offset, y, this.W, Math.max(1, h * 0.35));
+      }
+    }
+  },
+
+  // Random coloured rectangles — memory block corruption
+  _blockCorruption(d) {
+    if (d < 0.28 || Math.random() > d * 0.10) return;
+
+    const count = Math.ceil(d * 2);
+    for (let i = 0; i < count; i++) {
+      const x = Math.random() * this.W;
+      const y = Math.random() * this.H;
+      const w = 6  + Math.random() * d * 55;
+      const h = 2  + Math.random() * d * 18;
+      const r = Math.floor(Math.random() * 256);
+      const g = Math.floor(Math.random() * 256);
+      const b = Math.floor(Math.random() * 256);
+      this.ctx.fillStyle = `rgba(${r},${g},${b},${(d * 0.30).toFixed(2)})`;
+      this.ctx.fillRect(x, y, w, h);
+    }
+  },
+
+  // Scattered pixel noise — signal degradation
+  _staticNoise(d) {
+    if (d < 0.45 || Math.random() > d * 0.28) return;
+
+    const pixels = Math.floor(d * 700);
+    for (let i = 0; i < pixels; i++) {
+      const x  = Math.floor(Math.random() * this.W);
+      const y  = Math.floor(Math.random() * this.H);
+      const br = Math.floor(Math.random() * 200 + 55);
+      this.ctx.fillStyle = `rgba(${br},${br},${br},${(Math.random() * d * 0.45).toFixed(2)})`;
+      this.ctx.fillRect(x, y, 2, 2);
+    }
+  },
+
+  // Brief physical displacement of the whole app — system shudder
+  _shake(d) {
+    if (this._shakeLock || d < 0.12 || Math.random() > d * 0.042) return;
+
+    this._shakeLock  = true;
+    const mag        = d * 7;
+    const app        = document.getElementById('app');
+    const dx         = ((Math.random() * 2 - 1) * mag).toFixed(1);
+    const dy         = ((Math.random() * 2 - 1) * mag * 0.22).toFixed(1);
+    app.style.transform = `translate(${dx}px,${dy}px)`;
+
+    setTimeout(() => {
+      app.style.transform = '';
+      this._shakeLock = false;
+    }, 55 + Math.random() * 75);
+  },
+
+  // RGB channel separation via CSS drop-shadow
+  _chromatic(d) {
+    if (this._filterLock || d < 0.18 || Math.random() > d * 0.050) return;
+
+    this._filterLock  = true;
+    const offset      = Math.round(1 + d * 3.5);
+    const app         = document.getElementById('app');
+    app.style.filter  = `drop-shadow(${offset}px 0 0 rgba(255,0,60,0.45)) drop-shadow(-${offset}px 0 0 rgba(0,200,255,0.45))`;
+
+    setTimeout(() => {
+      app.style.filter = '';
+      this._filterLock = false;
+    }, 75 + Math.random() * 110);
+  },
+
+  // Rapid brightness dip — power fluctuation
+  _flicker(d) {
+    if (this._filterLock || d < 0.22 || Math.random() > d * 0.038) return;
+
+    this._filterLock  = true;
+    const br          = (0.45 + Math.random() * 0.42).toFixed(2);
+    const app         = document.getElementById('app');
+    app.style.filter  = `brightness(${br})`;
+
+    setTimeout(() => {
+      app.style.filter = '';
+      this._filterLock = false;
+    }, 25 + Math.random() * 45);
+  },
+
+  // Replace random chars in UI labels with junk glyphs — cognitive failure made legible
+  _textCorrupt(d) {
+    if (d < 0.42 || Math.random() > d * 0.07) return;
+
+    const glyphs  = '!@#%^░▓█▒▐▌■◆×÷~`|\\<>';
+    const targets = [
+      ...document.querySelectorAll('.gauge-name'),
+      ...document.querySelectorAll('.gauge-label'),
+      document.getElementById('traces-label'),
+      document.getElementById('health-log-label'),
+    ].filter(Boolean);
+
+    if (!targets.length) return;
+
+    const el       = targets[Math.floor(Math.random() * targets.length)];
+    const original = el.textContent;
+    const chars    = original.split('');
+    const count    = Math.min(Math.ceil(d * 3), Math.floor(chars.length * 0.4));
+
+    for (let i = 0; i < count; i++) {
+      const idx = Math.floor(Math.random() * chars.length);
+      if (chars[idx] !== ' ') {
+        chars[idx] = glyphs[Math.floor(Math.random() * glyphs.length)];
+      }
+    }
+
+    el.textContent = chars.join('');
+    setTimeout(() => { el.textContent = original; }, 65 + Math.random() * 100);
+  },
+};
+
+// ─── Animation loop ───────────────────────────────────────────────
+function animate() {
+  // Advance each gauge's time at a rate driven by its current value.
+  // LAT:   fast when low (responsive), slow when high (sluggish)
+  // ATTN:  slow when high (stable), fast when low (erratic)
+  // MEM:   slow when high (intact), fast when low (fragmenting)
+  // DRIFT: nearly still when low, fast when high (actively diverging)
+  // EXT:   slow when autonomous, faster as reliance climbs
+  animTimes.LAT   += 0.010 + (1 - (S.LAT   ?? 0.10)) * 0.050;
+  animTimes.ATTN  += 0.010 + (1 - (S.ATTN  ?? 0.90)) * 0.060;
+  animTimes.MEM   += 0.008 + (1 - (S.MEM   ?? 0.90)) * 0.050;
+  animTimes.DRIFT += 0.005 + (S.DRIFT ?? 0.05)        * 0.070;
+  animTimes.EXT   += 0.008 + (S.EXT   ?? 0.00)        * 0.045;
+
+  GlitchEngine.update();
+  BrainEngine.update();
+  BrainEngine.render();
+
+  // Re-render small gauge canvases every frame, passing each gauge's own time
+  GAUGES.forEach(g => {
+    const canvas = gaugeCanvases[g.id];
+    if (canvas) {
+      canvas.width = canvas.clientWidth || 240;
+      g.render(canvas, S[g.id] ?? 0, animTimes[g.id]);
+    }
+  });
+
+  requestAnimationFrame(animate);
+}
+
+// ─── Init ─────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  resizeTraces();
+  renderTraces();
+});
+
+document.getElementById('submit-btn').addEventListener('click', submitInput);
+document.getElementById('reset-btn').addEventListener('click', resetState);
+document.getElementById('mute-btn').addEventListener('click', () => AudioEngine.toggleMute());
+document.getElementById('input-field').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    submitInput();
+  }
+});
+
+resizeTraces();
+GlitchEngine.init();
+BrainEngine.init(document.getElementById('brain-canvas'));
+pollState();
+pollHealthLog();                    // NEW
+setInterval(pollState, 500);        // Changed from 1000
+setInterval(pollHealthLog, 2500);   // NEW
+
+// ─── Health log polling [NEW] ────────────────────────────────────
+async function pollHealthLog() {
+  try {
+    const r    = await fetch('/health_log');
+    const data = await r.json();
+    
+    healthLog = data.health_log;
+    renderHealthLog();
+  } catch (_) { /* ignore errors */ }
+}
+
+// ─── Render health log [NEW] ───────────────────────────────────────
+function renderHealthLog() {
+  const container = document.getElementById('health-log-items');
+  
+  if (healthLog.length === 0) {
+    container.innerHTML = '<div class="idle-msg" style="padding: 0; margin: 0; font-size: 9px; color: var(--text-dim);">No events.</div>';
+    return;
+  }
+
+  let html = '';
+  healthLog.forEach(entry => {
+    const time = new Date(entry.ts * 1000).toLocaleTimeString();
+    const icon = entry.level === 'NOTICE' ? 'ℹ' : entry.level === 'WARNING' ? '⚠' : '✕';
+    html += `<div class="health-log-entry ${entry.level.toLowerCase()}">
+      <span class="health-log-ts">[${time}]</span> ${icon} ${entry.message}
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+animate();
+</script>
+</body>
+</html>
